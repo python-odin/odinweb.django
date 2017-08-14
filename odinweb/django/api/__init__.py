@@ -12,17 +12,23 @@ from django.conf.urls import url
 from django.http import HttpRequest, HttpResponse
 
 from odinweb.containers import ApiInterfaceBase
-from odinweb.constants import Type, Method
-from odinweb.data_structures import PathNode
+from odinweb.constants import Type, Method, PATH_STRING_RE
+from odinweb.data_structures import PathParam
 
 
 TYPE_MAP = {
-    Type.String: '[-_.%\w]+',
-    Type.Number: r'[.\d]+',
     Type.Integer: r'\d+',
+    Type.Long: r'\d+',
+    Type.Float:  r'[.\d]+',
+    Type.Double:  r'[.\d]+',
+    Type.String: PATH_STRING_RE,
+    Type.Byte: '',
+    Type.Binary: '',
     Type.Boolean: r'0|1|true|false|yes|no|on|off',
-    # Type.Array: 'list',
-    # Type.File: 'string',
+    Type.Date: r'\d{4}-\d{2}-\d{2}',
+    Type.Time: r'\d{2}:\d{2}',
+    Type.DateTime: r'[-:\d]+',
+    Type.Password: PATH_STRING_RE,
 }
 
 
@@ -70,7 +76,7 @@ class Api(ApiInterfaceBase):
 
     @staticmethod
     def node_formatter(path_node):
-        # type: (PathNode) -> str
+        # type: (PathParam) -> str
         """
         Format a node to be consumable by the `UrlPath.parse`.
         """

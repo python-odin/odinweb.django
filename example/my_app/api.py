@@ -27,7 +27,7 @@ class UserApi(api.ResourceApi):
     tags = ['user']
 
     @doc.deprecated
-    @api.collection(url_path='find', methods=api.Method.POST)
+    @api.collection(path='find', methods=api.Method.POST)
     def operation_test(self, request):
         pass
 
