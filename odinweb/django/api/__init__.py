@@ -7,9 +7,11 @@ Django implementation of the OdinWeb API interface.
 """
 from __future__ import absolute_import
 
+import collections
 from django.conf import settings
 from django.conf.urls import url
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
+from django.views.decorators.csrf import csrf_exempt
 
 from odinweb.containers import ApiInterfaceBase
 from odinweb.constants import Type, Method, PATH_STRING_RE
@@ -83,21 +85,35 @@ class Api(ApiInterfaceBase):
         node_type = TYPE_MAP.get(path_node.type, '\w+')  # Generic string default
         return r"(?P<{}>{})".format(path_node.name, node_type)
 
-    def _bound_callback(self, operation):
+    def _bound_callback(self, methods):
+        @csrf_exempt
         def callback(request, **path_args):
-            response = self.dispatch(operation, RequestProxy(request), **path_args)
-            django_response = HttpResponse(response.body, response.status)
-            for key, value in response.headers.items():
-                django_response[key] = value
-            return django_response
+            request = RequestProxy(request)
+            operation = methods.get(request.method)
+            if operation:
+                response = self.dispatch(operation, request, **path_args)
+                django_response = HttpResponse(response.body, status=response.status)
+                for key, value in response.headers.items():
+                    django_response[key] = value
+                return django_response
+            else:
+                return HttpResponseNotAllowed(m.value for m in methods)
         return callback
 
     def urls(self):
         """
         URLs to be integrated into Django url_patterns lists.
         """
+        # Transform into a path -> method -> operation mapping.
+        paths = collections.OrderedDict()
+        for path, operation in self.op_paths():
+            methods = paths.setdefault(path, {})
+            for method in operation.methods:
+                methods[method] = operation
+
+        # Build URLs
         results = []
-        for url_path, operation in self.op_paths():
+        for url_path, methods in paths.items():
             # Generate path and apply regex wrapping.
             path = r'^{}$'.format(
                 url_path.format(self.node_formatter)[1:]
@@ -105,5 +121,5 @@ class Api(ApiInterfaceBase):
 
             # Let framework handle unknown method.
             # for method in tuple(m.value for m in operation.methods):
-            results.append(url(path, self._bound_callback(operation)))
+            results.append(url(path, self._bound_callback(methods)))
         return results

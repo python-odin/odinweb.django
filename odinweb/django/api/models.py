@@ -2,11 +2,15 @@
 from __future__ import absolute_import
 
 from django.shortcuts import get_object_or_404
+from odinweb.helpers import create_response
+
 from odin import registration
 from odin.exceptions import CodecDecodeError
 
 from odinweb import api
-from odinweb.exceptions import ImmediateErrorHttpResponse
+from odinweb.django.models import model_resource_factory
+from odinweb.constants import HTTPStatus
+from odinweb.exceptions import HttpError
 
 
 class ModelResourceApi(api.ResourceApi):
@@ -26,9 +30,12 @@ class ModelResourceApi(api.ResourceApi):
     to_resource_mapping = None
 
     def __init__(self, *args, **kwargs):
-        super(ModelResourceApi, self).__init__(*args, **kwargs)
-
         assert self.model, "A model has not been provided."
+
+        if self.resource is None:
+            self.resource = model_resource_factory(self.model)
+
+        super(ModelResourceApi, self).__init__(*args, **kwargs)
 
         # Attempt to resolve mappings
         if self.to_model_mapping is None:
@@ -59,15 +66,15 @@ class ModelResourceApi(api.ResourceApi):
         try:
             body = self.decode_body(request)
         except UnicodeDecodeError as ude:
-            raise ImmediateErrorHttpResponse(400, 40100, "Unable to decode request body.", str(ude))
+            raise HttpError(HTTPStatus.BAD_REQUEST, 100, "Unable to decode request body.", str(ude))
 
         try:
             resource = request.request_codec.loads(body, resource=resource, full_clean=False,
                                                    default_to_not_supplied=True)
         except ValueError as ve:
-            raise ImmediateErrorHttpResponse(400, 40098, "Unable to load resource.", str(ve))
+            raise HttpError(HTTPStatus.BAD_REQUEST, 98, "Unable to load resource.", str(ve))
         except CodecDecodeError as cde:
-            raise ImmediateErrorHttpResponse(400, 40096, "Unable to decode body.", str(cde))
+            raise HttpError(HTTPStatus.BAD_REQUEST, 96, "Unable to decode body.", str(cde))
 
         # Update only the supplied fields
         self.to_model_mapping(resource).update(instance, ignore_fields=ignore_fields)
@@ -77,16 +84,6 @@ class ModelResourceApi(api.ResourceApi):
     def save_model(self, request, instance, is_new=False):
         instance.save()
         return instance
-
-
-class CollectionMixin(ModelResourceApi):
-    """
-    Mixin that provides a collection response.
-    """
-    @api.collection
-    def object_collection(self, request):
-        queryset = self.get_queryset(request)
-        return self.to_resource_mapping.apply(queryset), len(queryset)
 
 
 class ListMixin(ModelResourceApi):
@@ -105,12 +102,11 @@ class CreateMixin(ModelResourceApi):
     Mixin that provides a basic creation method.
     """
     @api.create
-    def object_create(self, request):
-        resource = self.resource_from_body(request)
+    def object_create(self, request, resource):
         instance = self.to_model_mapping.apply(resource)
         instance.id = None
         self.save_model(request, instance, True)
-        return self.to_resource_mapping.apply(instance), 201
+        return create_response(request, self.to_resource_mapping.apply(instance), HTTPStatus.CREATED)
 
 
 class DetailMixin(ModelResourceApi):
@@ -128,24 +124,23 @@ class UpdateMixin(ModelResourceApi):
     Mixin that provides a basic model update method.
     """
     @api.update
-    def object_update(self, request, resource_id):
+    def object_update(self, request, resource, resource_id):
         instance = self.get_instance(request, resource_id)
-        resource = self.resource_from_body(request)
         self.to_model_mapping(resource).update(instance, ignore_fields=('id', 'pk'))
         self.save_model(request, instance, False)
         return self.to_resource_mapping.apply(instance)
 
-
-class PatchMixin(ModelResourceApi):
-    """
-    Mixin that provides a basic model update method.
-    """
-    @api.patch
-    def object_update(self, request, resource_id):
-        instance = self.get_instance(request, resource_id)
-        self.update_instance_from_body(request, instance)
-        self.save_model(request, instance, False)
-        return self.to_resource_mapping.apply(instance)
+#
+# class PatchMixin(ModelResourceApi):
+#     """
+#     Mixin that provides a basic model update method.
+#     """
+#     @api.patch
+#     def object_update(self, request, resource, resource_id):
+#         instance = self.get_instance(request, resource_id)
+#         self.update_instance_from_body(request, instance)
+#         self.save_model(request, instance, False)
+#         return self.to_resource_mapping.apply(instance)
 
 
 class DeleteMixin(ModelResourceApi):

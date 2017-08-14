@@ -1,7 +1,10 @@
 import odin
 
 from odinweb import api, doc
+from odinweb.django.api.models import ModelResourceApi, ListMixin, CreateMixin, DetailMixin, UpdateMixin, DeleteMixin
 from odinweb.swagger import SwaggerSpec
+
+from my_app.models import Group
 
 
 class User(odin.Resource):
@@ -75,6 +78,11 @@ class UserApi(api.ResourceApi):
         raise api.HttpError(api.HTTPStatus.NOT_FOUND)
 
 
+class GroupApi(ListMixin, CreateMixin, DetailMixin, UpdateMixin, DeleteMixin, ModelResourceApi):
+    model = Group
+    tags = ['group']
+
+
 sample_api = api.ApiCollection(name='sample')
 
 
@@ -87,4 +95,5 @@ api_v1 = api.ApiVersion(
     SwaggerSpec("Flask Example Swaggerspec", enable_ui=True),
     sample_api,
     UserApi(),
+    GroupApi(),
 )
