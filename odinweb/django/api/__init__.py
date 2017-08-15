@@ -89,13 +89,18 @@ class Api(ApiInterfaceBase):
         @csrf_exempt
         def callback(request, **path_args):
             request = RequestProxy(request)
+
             operation = methods.get(request.method)
             if operation:
+                # Dispatch request to framework
                 response = self.dispatch(operation, request, **path_args)
+
+                # Build Django response
                 django_response = HttpResponse(response.body, status=response.status)
                 for key, value in response.headers.items():
                     django_response[key] = value
                 return django_response
+
             else:
                 return HttpResponseNotAllowed(m.value for m in methods)
         return callback
@@ -104,16 +109,9 @@ class Api(ApiInterfaceBase):
         """
         URLs to be integrated into Django url_patterns lists.
         """
-        # Transform into a path -> method -> operation mapping.
-        paths = collections.OrderedDict()
-        for path, operation in self.op_paths():
-            methods = paths.setdefault(path, {})
-            for method in operation.methods:
-                methods[method] = operation
-
         # Build URLs
         results = []
-        for url_path, methods in paths.items():
+        for url_path, methods in self.op_paths(collate_methods=True).items():
             # Generate path and apply regex wrapping.
             path = r'^{}$'.format(
                 url_path.format(self.node_formatter)[1:]
