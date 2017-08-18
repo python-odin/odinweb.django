@@ -1,7 +1,7 @@
 import odin
 
 from odinweb import api, doc
-from odinweb.django.api.models import ModelResourceApi, ListMixin, CreateMixin, DetailMixin, UpdateMixin, DeleteMixin
+from odinweb.django.api.models import ModelResourceApi, Listing, Create, Detail, Update, Delete
 from odinweb.swagger import SwaggerSpec
 
 from my_app.models import Group
@@ -78,7 +78,10 @@ class UserApi(api.ResourceApi):
         raise api.HttpError(api.HTTPStatus.NOT_FOUND)
 
 
-class GroupApi(ListMixin, CreateMixin, DetailMixin, UpdateMixin, DeleteMixin, ModelResourceApi):
+class GroupApi(Listing, Create, Detail, Update, Delete, ModelResourceApi):
+    """
+    Endpoint to managing groups.
+    """
     model = Group
     tags = ['group']
 
@@ -86,7 +89,7 @@ class GroupApi(ListMixin, CreateMixin, DetailMixin, UpdateMixin, DeleteMixin, Mo
 sample_api = api.ApiCollection(name='sample')
 
 
-@sample_api.operation(url_path='foo/bar')
+@sample_api.operation('foo/bar')
 def sample(request):
     return {}
 

@@ -86,18 +86,18 @@ class ModelResourceApi(api.ResourceApi):
         return instance
 
 
-class ListMixin(ModelResourceApi):
+class Listing(ModelResourceApi):
     """
     Mixin that provides a basic paged listing response.
     """
     @api.listing
     def object_list(self, request, limit, offset):
         queryset = self.get_queryset(request)
-        results = queryset[offset:offset+limit]
-        return self.to_resource_mapping.apply(results), len(queryset)
+        page = queryset[offset:offset+limit]
+        return self.to_resource_mapping.apply(page), len(queryset)
 
 
-class CreateMixin(ModelResourceApi):
+class Create(ModelResourceApi):
     """
     Mixin that provides a basic creation method.
     """
@@ -109,7 +109,7 @@ class CreateMixin(ModelResourceApi):
         return create_response(request, self.to_resource_mapping.apply(instance), HTTPStatus.CREATED)
 
 
-class DetailMixin(ModelResourceApi):
+class Detail(ModelResourceApi):
     """
     Mixin that provides a basic full detail method.
     """
@@ -119,7 +119,7 @@ class DetailMixin(ModelResourceApi):
         return self.to_resource_mapping.apply(instance)
 
 
-class UpdateMixin(ModelResourceApi):
+class Update(ModelResourceApi):
     """
     Mixin that provides a basic model update method.
     """
@@ -143,7 +143,7 @@ class UpdateMixin(ModelResourceApi):
 #         return self.to_resource_mapping.apply(instance)
 
 
-class DeleteMixin(ModelResourceApi):
+class Delete(ModelResourceApi):
     """
     Mixin that provides a basic delete method.
     """
