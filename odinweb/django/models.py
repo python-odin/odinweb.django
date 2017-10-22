@@ -8,7 +8,7 @@ from django.db import models
 from odin import registration
 from odin.fields import NOT_PROVIDED
 from odin.mapping import FieldResolverBase, mapping_factory
-from odin.utils import getmeta
+from odin.utils import getmeta, filter_fields
 
 try:
     from odin.codecs import msgpack_codec
@@ -231,11 +231,15 @@ def model_resource_factory(model, module=None, base_resource=odin.Resource, reso
         frame = inspect.stack()[1]
         module = inspect.getmodule(frame[0])
 
+    # Handle include/exclude filtering
+    include_fields, reverse_exclude_fields = filter_fields(
+        [f.name for f in model_opts.fields],
+        include_fields, exclude_fields, reverse_exclude_fields
+    )
+
     # Append fields
-    exclude_fields = exclude_fields or []
-    reverse_exclude_fields = reverse_exclude_fields or []
     for mf in model_opts.fields:
-        if mf.attname in exclude_fields:
+        if mf.attname not in include_fields:
             continue
 
         # Create an odin version of the field.
@@ -243,9 +247,9 @@ def model_resource_factory(model, module=None, base_resource=odin.Resource, reso
         if field:
             attrs[mf.attname] = field
 
-        # Check if the field should not be reversed
+        # Add additional readonly fields (eg those that shouldn't be reversed)
         if field_in_filters(mf, NO_REVERSE_FIELDS):
-            reverse_exclude_fields.append(mf.attname)
+            reverse_exclude_fields.add(mf.attname)
 
     # Add any additional fields.
     if additional_fields:
