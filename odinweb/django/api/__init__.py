@@ -7,7 +7,6 @@ Django implementation of the OdinWeb API interface.
 """
 from __future__ import absolute_import
 
-import collections
 from django.conf import settings
 from django.conf.urls import url
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
