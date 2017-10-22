@@ -7,7 +7,9 @@ class LoginRequired(object):
     A login is required for this API.
     """
     def pre_dispatch(self, request, _):
-        if not request.request.user.is_authenticated:
+        user = request.user = request.request.user
+
+        if not user.is_authenticated():
             raise PermissionDenied(message="Login is required")
 
 
@@ -22,5 +24,5 @@ class PermissionRequired(object):
             self.perms = perm
 
     def pre_dispatch(self, request, _):
-        if not request.request.user.has_perms(self.perms):
+        if not request.user.has_perms(self.perms):
             raise AccessDenied(message="User doesn't have required permissions.")
