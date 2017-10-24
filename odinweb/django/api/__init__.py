@@ -81,7 +81,10 @@ class Api(ApiInterfaceBase):
         """
         Format a node to be consumable by the `UrlPath.parse`.
         """
-        node_type = TYPE_MAP.get(path_node.type, '\w+')  # Generic string default
+        if path_node.type == Type.Regex:
+            node_type = path_node.type_args  # Regex
+        else:
+            node_type = TYPE_MAP.get(path_node.type, '\w+')  # Generic string default
         return r"(?P<{}>{})".format(path_node.name, node_type)
 
     def _bound_callback(self, methods):
