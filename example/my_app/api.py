@@ -77,6 +77,10 @@ class UserApi(api.ResourceApi):
 
         raise api.HttpError(api.HTTPStatus.NOT_FOUND)
 
+    @api.operation(path="custom/{value:Regex:[a-f]+}")
+    def custom_user(self, request, value):
+        return value
+
 
 class GroupApi(Listing, Create, Detail, Update, Delete, ModelResourceApi):
     """
