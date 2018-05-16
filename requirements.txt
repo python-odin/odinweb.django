@@ -1,2 +1,2 @@
-odinweb >=0.4
+odinweb >=0.5
 django >=1.8
