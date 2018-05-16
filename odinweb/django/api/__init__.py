@@ -12,9 +12,10 @@ from django.conf.urls import url
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 
+from odin.utils import lazy_property
 from odinweb.containers import ApiInterfaceBase
 from odinweb.constants import Type, Method, PATH_STRING_RE
-from odinweb.data_structures import PathParam
+from odinweb.data_structures import PathParam, BaseHttpRequest
 
 
 TYPE_MAP = {
@@ -33,28 +34,57 @@ TYPE_MAP = {
 }
 
 
-class RequestProxy(object):
+class RequestProxy(BaseHttpRequest):
     def __init__(self, r):
         # type: (HttpRequest) -> None
-        self.GET = r.GET
-        self.POST = r.POST
-        self.headers = r.META
-        # self.session = r.
         self.request = r
 
+    @lazy_property
+    def environ(self):
+        return self.request.META
+
+    @lazy_property
+    def method(self):
         try:
-            method = Method[r.method]
+            return Method(self.request.method)
         except KeyError:
-            method = None
-        self.method = method
+            pass
 
-    @property
-    def body(self):
-        return self.request.body
+    @lazy_property
+    def scheme(self):
+        return self.request.scheme
 
-    @property
+    @lazy_property
     def host(self):
         return self.request.get_host()
+
+    @lazy_property
+    def path(self):
+        return self.request.path
+
+    @lazy_property
+    def query(self):
+        return self.request.GET
+
+    @lazy_property
+    def headers(self):
+        return self.request.META
+
+    @lazy_property
+    def cookies(self):
+        return self.request.COOKIES
+
+    @lazy_property
+    def session(self):
+        return self.request.scheme
+
+    @lazy_property
+    def body(self):
+        return self.request.body
+    
+    @lazy_property
+    def form(self):
+        return self.request.POST
 
 
 class Api(ApiInterfaceBase):
