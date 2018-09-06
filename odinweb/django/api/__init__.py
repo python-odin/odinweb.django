@@ -86,6 +86,10 @@ class RequestProxy(BaseHttpRequest):
     def form(self):
         return self.request.POST
 
+    @lazy_property
+    def content_type(self):
+        return self.request.content_type
+
 
 class Api(ApiInterfaceBase):
     """
