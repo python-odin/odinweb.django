@@ -88,7 +88,7 @@ class RequestProxy(BaseHttpRequest):
 
     @lazy_property
     def content_type(self):
-        return self.request.content_type
+        return self.headers.get('CONTENT_TYPE')
 
 
 class Api(ApiInterfaceBase):
